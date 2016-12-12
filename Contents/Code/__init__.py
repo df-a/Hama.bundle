@@ -189,14 +189,11 @@ class HamaCommonAgent:
   def Update(self, metadata, media, lang, force, movie):
 
     global SERIE_LANGUAGE_PRIORITY, EPISODE_LANGUAGE_PRIORITY, error_log_locked
-    error_log = { 'anime-list anidbid missing': [], 'anime-list tvdbid missing'  : [], 'anime-list studio logos': [],
-                  'AniDB summaries missing'   : [], 'AniDB posters missing'      : [], 
-                  'TVDB posters missing'      : [], 'TVDB season posters missing': [],
-                  'Plex themes missing'       : [],
-                  'Missing Episodes'          : [], 'Missing Episode Summaries'  : [],
-                  'Missing Specials'          : [], 'Missing Special Summaries'  : []  
+    error_log = { 'AniDB summaries missing'   : [], 'AniDB posters missing'      : [], 'anime-list anidbid missing': [],
+                  'TVDB posters missing'      : [], 'TVDB season posters missing': [], 'anime-list tvdbid missing' : [], 
+                  'Missing Episodes'          : [], 'Missing Episode Summaries'  : [], 'anime-list studio logos'   : [],
+                  'Missing Specials'          : [], 'Missing Special Summaries'  : [],  'Plex themes missing'      : []
                 }
-
     for key in error_log.keys():
       if key not in error_log_locked.keys(): error_log_locked[key] = [False, 0]
     
@@ -281,7 +278,8 @@ class HamaCommonAgent:
         tvdbanime = tvdbanime.xpath('/Data')[0]
         tvdbtitle, tvdbOverview, tvdbFirstAired   = getElementText(tvdbanime, 'Series/SeriesName'),    getElementText(tvdbanime, 'Series/Overview'  ),           getElementText(tvdbanime, 'Series/FirstAired')
         tvdbContentRating, tvdbNetwork, tvdbGenre = getElementText(tvdbanime, 'Series/ContentRating'), getElementText(tvdbanime, 'Series/Network'), filter(None, getElementText(tvdbanime, 'Series/Genre').split("|"))
-
+        #tvdbActors,tvdbStatus = filter(None, getElementText(tvdbanime, 'Series/Actors')).split("|"), getElementText(tvdbanime, 'Series/Status')
+        
         if '.' in getElementText(tvdbanime, 'Series/Rating'): ###tvdbRating   # isinstance(tmdb_json['vote_average'], float)
           try:    tvdbRating = float(getElementText(tvdbanime, 'Series/Rating'))
           except: tvdbRating = None 
@@ -322,7 +320,7 @@ class HamaCommonAgent:
             tvdb_table [numbering] = { 'EpisodeName': getElementText(episode, 'EpisodeName'), 'FirstAired':  getElementText(episode, 'FirstAired' ),
                                        'filename':    getElementText(episode, 'filename'   ), 'Overview':    getElementText(episode, 'Overview'   ), 
                                        'Director':    getElementText(episode, 'Director'   ), 'Writer':      getElementText(episode, 'Writer'     ),
-                                       'Rating':      getElementText(episode, 'Rating'     ) if '.' in getElementText(episode, 'Rating') else None
+                                       'Rating':      getElementText(episode, 'Rating'     ) if '.' in getElementText(episode, 'Rating') else None #guest stars ?
                                      }
             
             ### Check for Missing Summaries ### 
@@ -508,27 +506,27 @@ class HamaCommonAgent:
         self.anidbCollectionMapping(metadata, anime, anidbid_table)
         
         ### AniDB Creator data -  Aside from the animation studio, none of this maps to Series entries, so save it for episodes ###
-        log_string, metadata.studio, plex_role = "AniDB Creator data: ", "", {'directors': [], 'producers': [], 'writers': []}
-        roles = { "Animation Work": ["studio",  'studio' , "studio"], "Direction": ["directors", 'directors', "director"], "Series Composition": ["producers", 'producers', "producer"],
-                  "Original Work" : ["writers", 'writers', "writer"], "Script"   : ["writers",   'writers'  , "writer"  ], "Screenplay"        : ["writers",   'writers'  , "writer"  ] }
-        if movie: ###github for role in roles [1:3]: roles[role][0].clear()
-          metadata.writers.clear() #   a = sum(getattr(t, name, 0) for name in "xyz")
-          metadata.producers.clear()
-          metadata.directors.clear()          #Log.Debug("before for") #test = {"directors", 'producers', 'writers'} #for role in test:  metadata.test[role].clear() #for role in ["directors", 'producers', 'writers']:  metadata.role.clear() #role2[role].clear() #TypeError: unhashable type
-        log_string = "AniDB Creator data: "
-        for creator in anime.xpath('creators/name'):
-          for role in roles: 
-            if role in creator.get('type'):
-              if roles[ role ][1]=='studio':  metadata.studio = creator.text
-              elif     movie:
-                if   roles[ role ][1]=='directors':
-                  meta_director = metadata.directors.new()
-                  meta_director.name = creator.text
-                elif roles[ role ][1]=='writers':
-                  meta_writer = metadata.writers.new()
-                  meta_writer.name = creator.text
-              else:                                  plex_role [ roles[role][1] ].append(creator.text) #not movie #for episodes
-              log_string += "%s is a %s, " % (creator.text, roles[role][2] )
+        #log_string, metadata.studio, plex_role = "AniDB Creator data: ", "", {'directors': [], 'producers': [], 'writers': []}
+        #roles = { "Animation Work": ["studio",  'studio' , "studio"], "Direction": ["directors", 'directors', "director"], "Series Composition": ["producers", 'producers', "producer"],
+        #          "Original Work" : ["writers", 'writers', "writer"], "Script"   : ["writers",   'writers'  , "writer"  ], "Screenplay"        : ["writers",   'writers'  , "writer"  ] }
+        #if movie: ###github for role in roles [1:3]: roles[role][0].clear()
+        #  metadata.writers.clear() #   a = sum(getattr(t, name, 0) for name in "xyz")
+        #  metadata.producers.clear()
+        #  metadata.directors.clear()          #Log.Debug("before for") #test = {"directors", 'producers', 'writers'} #for role in test:  metadata.test[role].clear() #for role in ["directors", 'producers', 'writers']:  metadata.role.clear() #role2[role].clear() #TypeError: unhashable type
+        #log_string = "AniDB Creator data: "
+        #for creator in anime.xpath('creators/name'):
+        #  for role in roles: 
+        #    if role in creator.get('type'):
+        #      if roles[ role ][1]=='studio':  metadata.studio = creator.text
+        #      elif     movie:
+        #        if   roles[ role ][1]=='directors':
+        #          meta_director = metadata.directors.new()
+        #          meta_director.name = creator.text
+        #        elif roles[ role ][1]=='writers':
+        #          meta_writer = metadata.writers.new()
+        #          meta_writer.name = creator.text
+        #      else:                                  plex_role [ roles[role][1] ].append(creator.text) #not movie #for episodes
+        #      log_string += "%s is a %s, " % (creator.text, roles[role][2] )
         if metadata.studio == "" and mapping_studio == "":                           error_log['anime-list studio logos'].append("anidbid: %s | Title: '%s' | AniDB and anime-list are both missing the studio" % (WEB_LINK % (ANIDB_SERIE_URL % metadata_id_number, metadata_id_number), title) )
 
         if metadata.studio and mapping_studio and metadata.studio != mapping_studio: error_log['anime-list studio logos'].append("anidbid: %s | Title: '%s' | AniDB has studio '%s' and anime-list has '%s' | "    % (WEB_LINK % (ANIDB_SERIE_URL % metadata_id_number, metadata_id_number), title, metadata.studio, mapping_studio) + WEB_LINK % (ANIDB_TVDB_MAPPING_FEEDBACK % ("aid:" + metadata.id + " " + title, String.StripTags( XML.StringFromElement(anime, encoding='utf8'))), "Submit bug report (need GIT account)"))
