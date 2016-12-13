@@ -506,27 +506,27 @@ class HamaCommonAgent:
         self.anidbCollectionMapping(metadata, anime, anidbid_table)
         
         ### AniDB Creator data -  Aside from the animation studio, none of this maps to Series entries, so save it for episodes ###
-        #log_string, metadata.studio, plex_role = "AniDB Creator data: ", "", {'directors': [], 'producers': [], 'writers': []}
-        #roles = { "Animation Work": ["studio",  'studio' , "studio"], "Direction": ["directors", 'directors', "director"], "Series Composition": ["producers", 'producers', "producer"],
-        #          "Original Work" : ["writers", 'writers', "writer"], "Script"   : ["writers",   'writers'  , "writer"  ], "Screenplay"        : ["writers",   'writers'  , "writer"  ] }
-        #if movie: ###github for role in roles [1:3]: roles[role][0].clear()
-        #  metadata.writers.clear() #   a = sum(getattr(t, name, 0) for name in "xyz")
-        #  metadata.producers.clear()
-        #  metadata.directors.clear()          #Log.Debug("before for") #test = {"directors", 'producers', 'writers'} #for role in test:  metadata.test[role].clear() #for role in ["directors", 'producers', 'writers']:  metadata.role.clear() #role2[role].clear() #TypeError: unhashable type
-        #log_string = "AniDB Creator data: "
-        #for creator in anime.xpath('creators/name'):
-        #  for role in roles: 
-        #    if role in creator.get('type'):
-        #      if roles[ role ][1]=='studio':  metadata.studio = creator.text
-        #      elif     movie:
-        #        if   roles[ role ][1]=='directors':
-        #          meta_director = metadata.directors.new()
-        #          meta_director.name = creator.text
-        #        elif roles[ role ][1]=='writers':
-        #          meta_writer = metadata.writers.new()
-        #          meta_writer.name = creator.text
-        #      else:                                  plex_role [ roles[role][1] ].append(creator.text) #not movie #for episodes
-        #      log_string += "%s is a %s, " % (creator.text, roles[role][2] )
+        log_string, metadata.studio, plex_role = "AniDB Creator data: ", "", {'directors': [], 'producers': [], 'writers': []}
+        roles = { "Animation Work": ["studio",  'studio' , "studio"], "Direction": ["directors", 'directors', "director"], "Series Composition": ["producers", 'producers', "producer"],
+                 "Original Work" : ["writers", 'writers', "writer"], "Script"   : ["writers",   'writers'  , "writer"  ], "Screenplay"        : ["writers",   'writers'  , "writer"  ] }
+        if movie: ###github for role in roles [1:3]: roles[role][0].clear()
+         metadata.writers.clear() #   a = sum(getattr(t, name, 0) for name in "xyz")
+         metadata.producers.clear()
+         metadata.directors.clear()          #Log.Debug("before for") #test = {"directors", 'producers', 'writers'} #for role in test:  metadata.test[role].clear() #for role in ["directors", 'producers', 'writers']:  metadata.role.clear() #role2[role].clear() #TypeError: unhashable type
+        log_string = "AniDB Creator data: "
+        for creator in anime.xpath('creators/name'):
+         for role in roles: 
+           if role in creator.get('type'):
+             if roles[ role ][1]=='studio':  metadata.studio = creator.text
+             elif     movie:
+               if   roles[ role ][1]=='directors':
+                 meta_director = metadata.directors.new()
+                 meta_director.name = creator.text
+               elif roles[ role ][1]=='writers':
+                 meta_writer = metadata.writers.new()
+                 meta_writer.name = creator.text
+             else:                                  plex_role [ roles[role][1] ].append(creator.text) #not movie #for episodes
+             log_string += "%s is a %s, " % (creator.text, roles[role][2] )
         if metadata.studio == "" and mapping_studio == "":                           error_log['anime-list studio logos'].append("anidbid: %s | Title: '%s' | AniDB and anime-list are both missing the studio" % (WEB_LINK % (ANIDB_SERIE_URL % metadata_id_number, metadata_id_number), title) )
 
         if metadata.studio and mapping_studio and metadata.studio != mapping_studio: error_log['anime-list studio logos'].append("anidbid: %s | Title: '%s' | AniDB has studio '%s' and anime-list has '%s' | "    % (WEB_LINK % (ANIDB_SERIE_URL % metadata_id_number, metadata_id_number), title, metadata.studio, mapping_studio) + WEB_LINK % (ANIDB_TVDB_MAPPING_FEEDBACK % ("aid:" + metadata.id + " " + title, String.StripTags( XML.StringFromElement(anime, encoding='utf8'))), "Submit bug report (need GIT account)"))
@@ -602,27 +602,11 @@ class HamaCommonAgent:
               else:                                Log.Info("AniDB duration: '%d'"  % duration);  episodeObj.duration = duration;               
               if season == "1": numEpisodes, totalDuration = numEpisodes + 1, totalDuration + episodeObj.duration
             
-            ### AniDB Writers, Producers, Directors ###  #Log.Debug("### AniDB Writers, Producers, Directors ### ")
-            Log.Info("Processing writers and directors for Episode.")
-            episodeObj.writers.clear()
-            episodeObj.directors.clear()
-            for role in plex_role:
-              for person in plex_role[role]:
-                # Note: Writer/Director metadata is only written when the show is refreshed, not the episode.
-                if role=="writers":
-                  meta_writer = episodeObj.writers.new()
-                  Log.Debug("Adding new Writer {name}".format(name=person))
-                  meta_writer.name = person
-                if role=="directors":
-                  meta_director = episodeObj.directors.new()
-                  Log.Debug("Adding new Director {name}".format(name=person))
-                  meta_director.name = person
-            
             ### Rating ###
             rating = getElementText(episode, 'rating') #if rating =="":  Log.Debug(metadata.id + " Episode rating: ''") #elif rating == episodeObj.rating:  Log.Debug(metadata.id + " update - Episode rating: '%s'*" % rating )
             if not rating =="" and re.match("^\d+?\.\d+?$", rating):  episodeObj.rating = float(rating) #try: float(element) except ValueError:     print "Not a float"
             
-            ### TVDB mapping episode summary ###
+            ### TVDB mapping episode summary and Writers/Directors ###
             try:
               if tvdbid.isdigit():
                 anidb_ep, tvdb_ep, summary= 's' + season + 'e' + epNumVal, "", "No summary in TheTVDB.com" #epNum
@@ -639,7 +623,30 @@ class HamaCommonAgent:
                 mapped_eps.append( anidb_ep + ">" + tvdb_ep )
                 if tvdb_ep in tvdb_table and 'filename' in tvdb_table[tvdb_ep] and tvdb_table[tvdb_ep]['filename']!="":  self.metadata_download (episodeObj.thumbs, TVDB_IMAGES_URL + tvdb_table[tvdb_ep]['filename'], 1, "TVDB/episodes/"+ os.path.basename(tvdb_table[tvdb_ep]['filename']))            
                 Log.Info("TVDB mapping episode summary - anidb_ep: '%s', tvdb_ep: '%s', season: '%s', epNumVal: '%s', defaulttvdbseason: '%s', title: '%s', summary: '%s'" %(anidb_ep, tvdb_ep, season, epNumVal, defaulttvdbseason, ep_title, tvdb_table [tvdb_ep] ['Overview'][0:50].strip() if tvdb_ep in tvdb_table else "") )
-                episodeObj.summary = summary.replace("`", "'")            
+                episodeObj.summary = summary.replace("`", "'")
+                
+                # Writers and Directors
+                Log.Info("Processing writers and directors for Episode.")
+                episodeObj.directors.clear()
+                episodeObj.writers.clear()
+                director_list = []
+                writer_list = []
+                if tvdb_table[tvdb_ep]['Director']:
+                  director_list = tvdb_table[tvdb_ep]['Director'].split(", ")
+                if tvdb_table[tvdb_ep]['Writer']:
+                  writer_list = tvdb_table[tvdb_ep]['Writer'].split(", ")
+                Log.Info("Episode has {count_directors} directors and {count_writers} writers.".format(count_directors=len(director_list), count_writers=len(writer_list)))
+                # Inner if handles the 0 length case so that we don't add a nameless entry
+                for this_director in director_list:
+                  if this_director:
+                    meta_director = episodeObj.directors.new()
+                    Log.Debug("Adding new Director {name}".format(name=this_director))
+                    meta_director.name = this_director
+                for this_writer in tvdb_table[tvdb_ep]['Writer'].split(", "):
+                  if this_writer:
+                    meta_writer = episodeObj.writers.new()
+                    Log.Debug("Adding new Writer {name}".format(name=this_writer))
+                    meta_writer.name = this_writer
             except Exception as e:
               Log.Error("Issue in 'TVDB mapping episode summary', epNumVal: '%s'", epNumVal)
               Log.Error("mappingList = %s" % mappingList)
